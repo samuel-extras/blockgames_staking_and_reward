@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.6;
-import "hardhat/console.sol";
 
 
 /* My ethereum token */
@@ -49,7 +48,7 @@ contract Ownable {
     }
 }
 
-contract Token is ERC20Token, Ownable {
+contract StakingAndReward is ERC20Token, Ownable {
 
     string public _symbol;
     string public _name;
@@ -152,6 +151,7 @@ contract Token is ERC20Token, Ownable {
     ) internal virtual {
         require(from != address(0), "ERC20: transfer from the zero address");
         require(to != address(0), "ERC20: transfer to the zero address");
+        require(amount > 0, "ERC20: amount must be greater than 0");
 
         _beforeTokenTransfer(from, to, amount);
 
@@ -260,6 +260,7 @@ contract Token is ERC20Token, Ownable {
 
     function stake(uint _amount) external returns(bool successOrfailure){
         require(_amount <= (_balances[msg.sender] - _locked[msg.sender]) , "Your balance is to low to perform this transaction, please buy some tokens and try again");
+        require(_amount > 0 , "Please Stake value greater than 0");
         _stakedTime[msg.sender] = currentTime();
         _locked[msg.sender] += _amount;
         return true;
@@ -267,6 +268,8 @@ contract Token is ERC20Token, Ownable {
 
      function unstake(uint _amount) external returns(bool successOrfailure) {
         require(_amount <= _locked[msg.sender], "You have no staked token or unstake amount is greater than the staked");
+                require(_amount > 0 , "Please unStake value greater than 0");
+
         _stakedTime[msg.sender] = currentTime();
         _locked[msg.sender] -= _amount;
         
@@ -276,7 +279,7 @@ contract Token is ERC20Token, Ownable {
     function claimReward() external returns(bool successOrfailure){
         require(_locked[msg.sender] > 0, "You have no staked Token");
         require(currentTime() > _stakedTime[msg.sender] + 7 days, "reward claiming is once in a week");
-        uint256 _reward = 5;
+        uint256 _reward = _locked[msg.sender] /100;
         _stakedTime[msg.sender] = currentTime();
         _mint(msg.sender, _reward);
         return true;
