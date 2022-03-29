@@ -7,16 +7,20 @@ import {
   FaCalculator,
   FaHandHoldingUsd,
   FaTimesCircle,
+  FaLock,
+  FaLockOpen,
+  FaGift,
 } from "react-icons/fa";
 
 import Modal from "./Modal";
 import Alert from "./Alert";
+import Prompt from "./Prompt";
 
 function classNames(...classes) {
   return classes.filter(Boolean).join(" ");
 }
 
-const Header = () => {
+const Body = () => {
   const {
     currentAccount,
     connectWallet,
@@ -30,6 +34,8 @@ const Header = () => {
     balance,
     staked,
     handleStake,
+    handleBuy,
+    handleUnStake,
     amountStake,
     stakeToken,
     showBalances,
@@ -46,6 +52,18 @@ const Header = () => {
     alertMessage,
     setAlert,
     alert,
+    buyModal,
+    setBuyModal,
+    buyAmount,
+    buyPrompt,
+    setBuyPrompt,
+    unStakeAmount,
+    setUnStakePrompt,
+    unStakePrompt,
+    unStakeToken,
+    unStakeModal,
+    buyToken,
+    setUnStakeModal,
   } = useContext(StakingAndRewardContext);
 
   const handleSubmit = (e) => {
@@ -183,6 +201,12 @@ const Header = () => {
             </Popover>
             {!currentAccount && (
               <main className="mt-10 mx-auto max-w-7xl px-4 sm:mt-12 sm:px-6 md:mt-16 lg:mt-20 lg:px-8 xl:mt-28">
+                {alert && (
+                  <Alert
+                    message={alertMessage}
+                    onClose={() => setAlert(false)}
+                  />
+                )}
                 <div className="sm:text-center lg:text-left">
                   <h1 className="text-4xl tracking-tight font-extrabold text-gray-900 sm:text-5xl md:text-6xl">
                     <span className="block xl:inline">STK Blockgames</span>{" "}
@@ -241,7 +265,8 @@ const Header = () => {
                     <h3 className="text-3xl text-gray-700 font-semibold leading-tight my-3">
                       {Number(staked) / 1000000000000000000} STK
                     </h3>
-                    <p className="text-xs text-red-500  leading-tight">
+                    <p className="text-xs text-red-500 flex align-middle justify-center  leading-tight">
+                      <FaLock className="mr-1" />
                       Not Spendable
                     </p>
                   </div>
@@ -261,7 +286,8 @@ const Header = () => {
                     <h3 className="text-3xl text-gray-700 font-semibold leading-tight my-3">
                       {Number(balance) / 1000000000000000000} STK
                     </h3>
-                    <p className="text-xs text-green-500 leading-tight">
+                    <p className="text-xs text-green-500 justify-center align-middle flex leading-tight">
+                      <FaLockOpen className="mr-1" />
                       Spendable
                     </p>
                   </div>
@@ -292,15 +318,15 @@ const Header = () => {
               </div>
             </div>
           </div>
-          <div className="mt-5 flex lg:ml-4 ">
-            <span className="sm:ml-3 mr-1">
+          <div className="mt-5 grid grid-cols-2 md:grid-cols-4 gap-y-4 lg:ml-4 ">
+            <span className="sm:ml-3 mr-1 ">
               <button
                 type="button"
                 onClick={() => showAllBalance()}
                 className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
               >
-                <FaCalculator className="-ml-1 mr-2 h-3 w-3  " />
-                Show Balance
+                <FaCalculator className="-ml-1 mr-1 h-3 w-3  " />
+                Show Balances
               </button>
             </span>
             <span className="sm:ml-3 mr-1">
@@ -309,8 +335,28 @@ const Header = () => {
                 onClick={() => claimReward()}
                 className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-indigo-700 bg-indigo-100 hover:bg-indigo-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
               >
-                <FaHandHoldingUsd className="-ml-1 mr-2 h-3 w-3  " />
+                <FaGift className="-ml-1 mr-1 h-3 w-3" />
                 Claim Reward
+              </button>
+            </span>
+            <span className="sm:ml-3 mr-1">
+              <button
+                type="button"
+                onClick={() => setUnStakePrompt(true)}
+                className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-indigo-700 bg-indigo-100 hover:bg-indigo-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              >
+                <FaLockOpen className="-ml-1 mr-2 h-3 w-3" />
+                Unstake STK
+              </button>
+            </span>
+            <span className="sm:ml-3 mr-1">
+              <button
+                type="button"
+                onClick={() => setBuyPrompt(true)}
+                className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-indigo-700 bg-indigo-100 hover:bg-indigo-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              >
+                <FaHandHoldingUsd className="-ml-1 mr-2 h-3 w-3" />
+                Buy Token(s)
               </button>
             </span>
           </div>
@@ -455,14 +501,61 @@ const Header = () => {
           />
           <Modal
             header="Reward Claimed"
-            message1={`${amountClaimed} SKT reward has been claimed successfully , spendable balance is now ${balance} `}
-            icon="fa-fa-cash"
+            message1={`${amountClaimed} SKT reward has been claimed successfully , spendable balance is now ${
+              balance / 1000000000000000000
+            }} `}
             handleOpenClose={claimedModal}
             handlClose={() => setClaimedModal(false)}
+          />
+          <Modal
+            header="Unstake Successful"
+            message1={`${unStakeAmount} SKT has been unstaked successfully , spendable balance is now ${
+              balance / 1000000000000000000
+            } `}
+            handleOpenClose={unStakeModal}
+            handlClose={() => setUnStakeModal(false)}
+          />
+          <Modal
+            header="STK Purchased"
+            message1={`${buyAmount} SKT reward has been claimed successfully , spendable balance is now ${
+              balance / 1000000000000000000
+            } `}
+            handleOpenClose={buyModal}
+            handlClose={() => setBuyModal(false)}
+          />
+          <Prompt
+            heading="Unstake Token"
+            name="Unstake"
+            type="number"
+            placeholder="Unstake Amount"
+            message1="You are about to unstake staked token... "
+            message2="Note: Unstake will be spendable and will not be entitled to reward"
+            button="Unstake"
+            handleOpenClose={unStakePrompt}
+            onChange={(e) => handleUnStake(e)}
+            onClose={() => setUnStakePrompt(false)}
+            onSubmit={() => {
+              unStakeToken(), setUnStakePrompt(false);
+            }}
+          />
+          <Prompt
+            heading="Buy STK Token"
+            name="buy"
+            type="text"
+            placeholder="Enter receipient Wallet Address"
+            message1="The value of STK is 10STK per ETH... "
+            message2="Note: Value STK value is not fixed, demand and supply are the major factors that may change the token value"
+            button="Buy Token"
+            onChange={(e) => handleBuy(e)}
+            handleOpenClose={buyPrompt}
+            onClose={() => setBuyPrompt(false)}
+            onSubmit={() => {
+              buyToken(), setBuyPrompt(false);
+            }}
           />
         </>
       )}
     </>
   );
 };
-export default Header;
+export default Body;

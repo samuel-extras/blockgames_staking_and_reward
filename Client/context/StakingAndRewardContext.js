@@ -6,31 +6,56 @@ import { contractABI, contractAddress } from "../utils/constants";
 export const StakingAndRewardContext = React.createContext();
 
 let metamask;
+let isConnected;
 
 if (typeof window !== "undefined") {
   metamask = window.ethereum;
+  window.ethereum.on("accountsChanged", (accounts) => {
+    if (accounts.length > 0) {
+      window.location.reload();
+      console.log(`Account connected: ${accounts[0]}`);
+    } else {
+      window.location.reload();
+      console.log("Metamask disconnected from Dapp");
+    }
+  });
 }
 
 export const StakingAndRewardProvider = ({ children }) => {
   const [currentAccount, setCurrentAccount] = useState();
+  const [contract, setContract] = useState();
+
   const [isLoading, setIsLoading] = useState(false);
+  const [reload, setReload] = useState(false);
+
+  const [showBalances, setShowBalances] = useState(false);
+
   const [formData, setformData] = useState({
     addressTo: "",
     amount: "",
   });
-  const [contract, setContract] = useState();
   const [amountTransfered, setAmountTransfered] = useState("");
+  const [transferedModal, setTransferedModal] = useState(false);
+
   const [staked, setStaked] = useState();
   const [amountStake, setAmountStake] = useState("");
+  const [stakedModal, setStakedModal] = useState(false);
+
   const [amountClaimed, setAmountClaimed] = useState("");
   const [claimedModal, setClaimedModal] = useState(false);
-  const [balance, setBalance] = useState(0);
   const [balanceBeforeReward, setBalanceBeforeReward] = useState(0);
+
+  const [balance, setBalance] = useState(0);
   const [totalBalance, setTotalBalance] = useState(0);
-  const [reload, setReload] = useState(false);
-  const [showBalances, setShowBalances] = useState(false);
-  const [transferedModal, setTransferedModal] = useState(false);
-  const [stakedModal, setStakedModal] = useState(false);
+
+  const [unStakeAmount, setUnStakeAmount] = useState("");
+  const [unStakePrompt, setUnStakePrompt] = useState(false);
+  const [unStakeModal, setUnStakeModal] = useState(false);
+
+  const [buyAmount, setBuyAmount] = useState("");
+  const [buyPrompt, setBuyPrompt] = useState(false);
+  const [buyModal, setBuyModal] = useState(false);
+
   const [alert, setAlert] = useState(false);
   const [alertMessage, setAlertMessage] = useState("");
 
@@ -43,8 +68,15 @@ export const StakingAndRewardProvider = ({ children }) => {
   const handleStake = (e) => {
     setAmountStake(e.target.value);
   };
+  const handleBuy = (e) => {
+    setBuyAmount(e.target.value);
+  };
+  const handleUnStake = (e) => {
+    setUnStakeAmount(e.target.value);
+  };
 
   useEffect(() => {
+    const ethereum = window.ethereum;
     createTokenContract();
     if (!currentAccount) return;
     if (currentAccount) {
@@ -52,7 +84,7 @@ export const StakingAndRewardProvider = ({ children }) => {
       getStakedCoin();
       getBalance();
     }
-  }, [currentAccount, reload]);
+  }, [currentAccount, reload, isConnected]);
 
   useEffect(() => {
     checkIfWalletIsConnected();
@@ -117,15 +149,17 @@ export const StakingAndRewardProvider = ({ children }) => {
   };
 
   const disonnected = () => {
-    if (window.ethereum.isConnected()) {
-      return;
-    } else {
-      window.location.reload();
-    }
+    setMetamask(window.ethereum.isConnected());
   };
 
   const connectWallet = async () => {
-    if (!window.ethereum) return;
+    if (typeof window.ethereum !== "undefined") {
+      console.log("MetaMask is installed!");
+    } else {
+      setAlertMessage("Please Install Metamask");
+      setAlert(true);
+    }
+
     try {
       const addressArray = await window.ethereum.request({
         method: "eth_requestAccounts",
@@ -270,8 +304,6 @@ export const StakingAndRewardProvider = ({ children }) => {
 
     try {
       if (window.ethereum) {
-        const provider = new ethers.providers.Web3Provider(window.ethereum);
-
         const amount = amountStake;
         const parsedAmount = ethers.utils.parseEther(amount);
 
@@ -282,13 +314,76 @@ export const StakingAndRewardProvider = ({ children }) => {
         let txConfirm = await stake.wait();
         console.log(stake);
         console.log(`Success`);
-        alert("stake successful");
         setIsLoading(false);
         setAmountStake(0);
         setStakedModal(true);
         setReload(!reload);
 
         console.log(transfer);
+      } else {
+      }
+    } catch (error) {
+      console.log(error);
+      setAlertMessage(error?.error?.message || "something went wrong");
+      setAlert(true);
+
+      // throw new Error(error.message);
+    }
+  };
+  const unStakeToken = async () => {
+    if (!window.ethereum) return;
+
+    try {
+      if (window.ethereum) {
+        const amount = unStakeAmount;
+        const parsedAmount = ethers.utils.parseEther(amount);
+
+        setIsLoading(true);
+
+        const unStake = await contract.unstake(parsedAmount);
+
+        let txConfirm = await unStake.wait();
+        console.log(unStake);
+        console.log(`Success`);
+        setUnStakeAmount(amount);
+        setIsLoading(false);
+        setUnStakeModal(true);
+        setReload(!reload);
+
+        console.log(unStake);
+      } else {
+      }
+    } catch (error) {
+      console.log(error);
+      setAlertMessage(error?.error?.message || "something went wrong");
+      setAlert(true);
+
+      // throw new Error(error.message);
+    }
+  };
+  const buyToken = async () => {
+    if (!window.ethereum) return;
+
+    try {
+      if (window.ethereum) {
+        const amount = buyAmount;
+        // const parsedAmount = ethers.utils.parseEther(amount);
+
+        setIsLoading(true);
+
+        const buy = await contract.buyToken(amount);
+        console.log(buy);
+
+        let txConfirm = await buy.wait();
+        console.log(buy);
+        console.log(`Success`);
+        alert("Bought successfully");
+        setBuyAmount(amount);
+        setIsLoading(false);
+        setBuyModal(true);
+        setReload(!reload);
+
+        console.log(buy);
       } else {
       }
     } catch (error) {
@@ -331,6 +426,20 @@ export const StakingAndRewardProvider = ({ children }) => {
         alert,
         setAlert,
         alertMessage,
+        buyModal,
+        setBuyModal,
+        buyAmount,
+        buyPrompt,
+        setBuyPrompt,
+        setUnStakePrompt,
+        unStakePrompt,
+        unStakeAmount,
+        unStakeToken,
+        unStakeModal,
+        handleBuy,
+        handleUnStake,
+        buyToken,
+        setUnStakeModal,
       }}
     >
       {children}

@@ -9,7 +9,8 @@ const Modal = ({
   message2,
   message3,
   handleOpenClose,
-  handlClose
+  handlClose,
+
 }) => {
 
   const cancelButtonRef = useRef(null);
@@ -59,6 +60,7 @@ const Modal = ({
                       className={`${icon} h-6 w-6 text-green-600 `}
                       aria-hidden="true"
                     ></i>
+                    {icon}
                   </div>
                   <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
                     <Dialog.Title
