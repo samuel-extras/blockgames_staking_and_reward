@@ -8,17 +8,21 @@ export const StakingAndRewardContext = React.createContext();
 let metamask;
 let isConnected;
 
-if (typeof window !== "undefined") {
-  metamask = window.ethereum;
-  window.ethereum.on("accountsChanged", (accounts) => {
-    if (accounts.length > 0) {
-      window.location.reload();
-      console.log(`Account connected: ${accounts[0]}`);
-    } else {
-      window.location.reload();
-      console.log("Metamask disconnected from Dapp");
-    }
-  });
+try {
+  if (typeof window !== "undefined") {
+    metamask = window.ethereum;
+    window.ethereum.on("accountsChanged", (accounts) => {
+      if (accounts.length > 0) {
+        window.location.reload();
+        console.log(`Account connected: ${accounts[0]}`);
+      } else {
+        window.location.reload();
+        console.log("Metamask disconnected from Dapp");
+      }
+    });
+  }
+} catch (error) {
+  console.log(error);
 }
 
 export const StakingAndRewardProvider = ({ children }) => {
@@ -26,6 +30,7 @@ export const StakingAndRewardProvider = ({ children }) => {
   const [contract, setContract] = useState();
 
   const [isLoading, setIsLoading] = useState(false);
+  const [isClaiming, setIsClaiming] = useState(false);
   const [reload, setReload] = useState(false);
 
   const [showBalances, setShowBalances] = useState(false);
@@ -53,6 +58,7 @@ export const StakingAndRewardProvider = ({ children }) => {
   const [unStakeModal, setUnStakeModal] = useState(false);
 
   const [buyAmount, setBuyAmount] = useState("");
+  const [buyAddress, setBuyAddress] = useState("");
   const [buyPrompt, setBuyPrompt] = useState(false);
   const [buyModal, setBuyModal] = useState(false);
 
@@ -68,7 +74,10 @@ export const StakingAndRewardProvider = ({ children }) => {
   const handleStake = (e) => {
     setAmountStake(e.target.value);
   };
-  const handleBuy = (e) => {
+  const handleAddressChange = (e) => {
+    setBuyAddress(e.target.value);
+  };
+  const handleAmountChange = (e) => {
     setBuyAmount(e.target.value);
   };
   const handleUnStake = (e) => {
@@ -76,18 +85,23 @@ export const StakingAndRewardProvider = ({ children }) => {
   };
 
   useEffect(() => {
-    const ethereum = window.ethereum;
-    createTokenContract();
-    if (!currentAccount) return;
-    if (currentAccount) {
-      getTotalBalance();
-      getStakedCoin();
-      getBalance();
+    if (typeof window !== "undefined") {
+      if (!window.ethereum) return;
+      const ethereum = window.ethereum;
+      createTokenContract();
+      if (!currentAccount) return;
+      if (currentAccount) {
+        getTotalBalance();
+        getStakedCoin();
+        getBalance();
+      }
     }
   }, [currentAccount, reload, isConnected]);
 
   useEffect(() => {
-    checkIfWalletIsConnected();
+    if (typeof window !== "undefined") {
+      checkIfWalletIsConnected();
+    }
   }, []);
 
   const createTokenContract = async () => {
@@ -169,14 +183,11 @@ export const StakingAndRewardProvider = ({ children }) => {
         console.log(addressArray[0]);
         let storedAccount =
           JSON.parse(window.localStorage.getItem("accounts")) || [];
-        console.log(storedAccount);
         let accounts = storedAccount;
         if (accounts.includes(addressArray[0])) {
           return;
         } else {
-          console.log(addressArray[0]);
           accounts.push(addressArray[0]);
-          console.log(accounts);
           window.localStorage.setItem("accounts", JSON.stringify(accounts));
           addTokenToMetamask();
         }
@@ -244,14 +255,13 @@ export const StakingAndRewardProvider = ({ children }) => {
 
     try {
       if (window.ethereum) {
+        setIsClaiming(true);
         const rewardClaimed = await contract.claimReward();
-        setIsLoading(true);
         setBalanceBeforeReward(balance);
         let txConfirm = await rewardClaimed.wait();
         console.log(`Success: reward claimed`);
-        alert("Reward Claimed successfully");
         getBalance();
-        setIsLoading(false);
+        setIsClaiming(false);
         getTotalBalance();
         setAmountClaimed(Number(balance) - Number(balanceBeforeReward));
         setClaimedModal(true);
@@ -259,6 +269,8 @@ export const StakingAndRewardProvider = ({ children }) => {
       } else {
       }
     } catch (error) {
+      setIsClaiming(false);
+
       setAlertMessage(error?.error?.message || "something went wrong");
       setAlert(true);
       console.log(error);
@@ -279,7 +291,6 @@ export const StakingAndRewardProvider = ({ children }) => {
         let txConfirm = await transfer.wait();
 
         console.log(`Success`);
-        alert("Transfer Successful");
         setIsLoading(false);
         setformData({
           addressTo: "",
@@ -287,13 +298,13 @@ export const StakingAndRewardProvider = ({ children }) => {
         });
         setTransferedModal(true);
         setReload(!reload);
-
-        console.log(transfer);
       } else {
       }
     } catch (error) {
       console.log(error);
       setAlertMessage(error?.error?.message || "something went wrong");
+      setIsLoading(false);
+
       setAlert(true);
 
       // throw new Error(error.message);
@@ -312,19 +323,18 @@ export const StakingAndRewardProvider = ({ children }) => {
         const stake = await contract.stake(parsedAmount);
 
         let txConfirm = await stake.wait();
-        console.log(stake);
         console.log(`Success`);
         setIsLoading(false);
-        setAmountStake(0);
+        setAmountStake(amount);
         setStakedModal(true);
         setReload(!reload);
-
-        console.log(transfer);
       } else {
       }
     } catch (error) {
       console.log(error);
       setAlertMessage(error?.error?.message || "something went wrong");
+      setIsLoading(false);
+
       setAlert(true);
 
       // throw new Error(error.message);
@@ -343,19 +353,18 @@ export const StakingAndRewardProvider = ({ children }) => {
         const unStake = await contract.unstake(parsedAmount);
 
         let txConfirm = await unStake.wait();
-        console.log(unStake);
         console.log(`Success`);
         setUnStakeAmount(amount);
         setIsLoading(false);
         setUnStakeModal(true);
         setReload(!reload);
-
-        console.log(unStake);
       } else {
       }
     } catch (error) {
       console.log(error);
       setAlertMessage(error?.error?.message || "something went wrong");
+      setIsLoading(false);
+
       setAlert(true);
 
       // throw new Error(error.message);
@@ -367,28 +376,31 @@ export const StakingAndRewardProvider = ({ children }) => {
     try {
       if (window.ethereum) {
         const amount = buyAmount;
-        // const parsedAmount = ethers.utils.parseEther(amount);
+        const address = buyAddress;
+        const parsedAmount = ethers.utils.parseEther(amount);
 
         setIsLoading(true);
 
-        const buy = await contract.buyToken(amount);
-        console.log(buy);
+        const buy = await contract.buyToken(address, {
+          from: currentAccount,
+          value: parsedAmount,
+          gasLimit: 3000000,
+        });
 
         let txConfirm = await buy.wait();
-        console.log(buy);
         console.log(`Success`);
-        alert("Bought successfully");
         setBuyAmount(amount);
+        setBuyAddress(address);
         setIsLoading(false);
         setBuyModal(true);
         setReload(!reload);
-
-        console.log(buy);
       } else {
       }
     } catch (error) {
       console.log(error);
       setAlertMessage(error?.error?.message || "something went wrong");
+      setIsLoading(false);
+
       setAlert(true);
 
       // throw new Error(error.message);
@@ -420,6 +432,7 @@ export const StakingAndRewardProvider = ({ children }) => {
         setTransferedModal,
         setAmountTransfered,
         stakedModal,
+        setStakedModal,
         totalBalance,
         amountClaimed,
         claimedModal,
@@ -436,10 +449,14 @@ export const StakingAndRewardProvider = ({ children }) => {
         unStakeAmount,
         unStakeToken,
         unStakeModal,
-        handleBuy,
+        handleAddressChange,
+        handleAmountChange,
         handleUnStake,
         buyToken,
         setUnStakeModal,
+        buyAddress,
+        isClaiming,
+        setAmountStake,
       }}
     >
       {children}

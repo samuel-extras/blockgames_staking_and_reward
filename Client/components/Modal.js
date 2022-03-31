@@ -1,18 +1,29 @@
 import { Fragment, useRef, useState } from "react";
+import {
+  FaWallet,
+  FaBars,
+  FaCalculator,
+  FaHandHoldingUsd,
+  FaTimesCircle,
+  FaLock,
+  FaLockOpen,
+  FaUnlockAlt,
+  FaGift,
+  FaRegPaperPlane,
+  FaFileInvoice,
+} from "react-icons/fa";
 
 import { Dialog, Transition } from "@headlessui/react";
 
 const Modal = ({
-  icon,
   header,
   message1,
   message2,
   message3,
   handleOpenClose,
   handlClose,
-
+  name,
 }) => {
-
   const cancelButtonRef = useRef(null);
 
   return (
@@ -55,12 +66,22 @@ const Modal = ({
             <div className="relative inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
               <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
                 <div className="sm:flex sm:items-start">
-                  <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-green-100 sm:mx-0 sm:h-10 sm:w-10">
-                    <i
-                      className={`${icon} h-6 w-6 text-green-600 `}
-                      aria-hidden="true"
-                    ></i>
-                    {icon}
+                  <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-indigo-100 sm:mx-0 sm:h-10 sm:w-10">
+                    {name === "stake" ? (
+                      <FaLock className="h-6 w-6 text-gray-600" />
+                    ) : name === "unstake" ? (
+                      <FaUnlockAlt className="h-6 w-6 text-gray-600" />
+                    ) : name === "claim" ? (
+                      <FaGift className="h-6 w-6 text-gray-600" />
+                    ) : name === "transfer" ? (
+                      <FaRegPaperPlane className="h-6 w-6 text-gray-600" />
+                    ) : name === "balance" ? (
+                      <FaFileInvoice className="h-6 w-6 text-gray-600" />
+                    ) : name === "buy" ? (
+                      <FaHandHoldingUsd className="h-6 w-6 text-gray-600" />
+                    ) : (
+                      <FaCheckCircle className="h-6 w-6 text-gray-600" />
+                    )}
                   </div>
                   <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
                     <Dialog.Title
@@ -80,7 +101,7 @@ const Modal = ({
               <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex align-middle justify-center ">
                 <button
                   type="button"
-                  className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-green-600 text-base font-medium text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 sm:ml-3 sm:w-auto sm:text-sm"
+                  className="w-full outline-none inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:ml-3 sm:w-auto sm:text-sm"
                   onClick={handlClose}
                 >
                   Close
